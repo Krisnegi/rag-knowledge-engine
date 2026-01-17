@@ -1,0 +1,39 @@
+// gateway-service/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProcessingStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id            String     @id @default(uuid())
+  email         String     @unique
+  password_hash String
+  created_at    DateTime   @default(now())
+  
+  documents     Document[]
+}
+
+model Document {
+  id          String           @id @default(uuid())
+  source_url  String
+  vector_id   String?          // ID reference to Pinecone vector
+  status      ProcessingStatus @default(PENDING)
+  created_at  DateTime         @default(now())
+  updated_at  DateTime         @updatedAt
+  
+  user_id     String
+  user        User             @relation(fields: [user_id], references: [id])
+  
+  @@index([user_id])
+}

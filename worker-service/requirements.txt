@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+redis
+python-dotenv
+# We will add playwright and langchain later in Phase 4
