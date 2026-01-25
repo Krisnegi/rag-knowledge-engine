@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Get,
   Body,
   BadRequestException,
   UseGuards,
@@ -8,6 +9,9 @@ import {
 } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { AuthGuard } from '@nestjs/passport';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 @Controller('chat')
 export class ChatController {
@@ -28,5 +32,22 @@ export class ChatController {
     console.log(`User ${req.user.sub} is asking: ${query}`);
 
     return this.chatService.getAiResponse(query, req.user.sub, sessionId);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('sessions')
+  async getChatHistory(@Request() req) {
+    const userId = req.user.sub;
+
+    // Fetch all sessions for this user, including the messages inside them
+    return await prisma.chatSession.findMany({
+      where: { user_id: userId },
+      orderBy: { updated_at: 'desc' }, // Newest chats first
+      include: {
+        messages: {
+          orderBy: { created_at: 'asc' }, // Messages in chronological order
+        },
+      },
+    });
   }
 }
