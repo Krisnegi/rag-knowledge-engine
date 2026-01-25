@@ -23,12 +23,12 @@ model User {
   created_at    DateTime   @default(now())
   
   documents     Document[]
+  chat_sessions ChatSession[]
 }
 
 model Document {
   id          String           @id @default(uuid())
   source_url  String
-  vector_id   String?          // ID reference to Pinecone vector
   status      ProcessingStatus @default(PENDING)
   created_at  DateTime         @default(now())
   updated_at  DateTime         @updatedAt
@@ -38,3 +38,33 @@ model Document {
   
   @@index([user_id])
 }
+
+model ChatSession {
+  id         String   @id @default(uuid())
+  title      String   @default("New Chat") // Can be auto-generated later
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id])
+
+  messages   ChatMessage[]
+
+  @@index([user_id])
+}
+
+model ChatMessage {
+  id              String   @id @default(uuid())
+  
+  user_query      String   @db.Text // What the user asked
+  ai_response     String   @db.Text // What the AI answered
+  sources         Json?    // Array of URLs used for this specific answer
+  
+  created_at      DateTime @default(now())
+
+  chat_session_id String
+  session         ChatSession @relation(fields: [chat_session_id], references: [id], onDelete: Cascade)
+
+  @@index([chat_session_id])
+}
+

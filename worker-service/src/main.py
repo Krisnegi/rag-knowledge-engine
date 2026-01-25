@@ -48,6 +48,7 @@ def process_scraping_job(job_data):
     """The heavy lifting background task"""
     job_id = job_data.get('jobId')
     url = job_data.get('url')
+    user_id = job_data.get('userId')
     print(f"🚀 Processing Job {job_id}")
 
     try:
@@ -78,7 +79,7 @@ def process_scraping_job(job_data):
             vectors.append({
                 "id": f"{job_id}#{i}",
                 "values": vector,
-                "metadata": {"text": chunk, "source_url": url, "job_id": job_id}
+                "metadata": {"text": chunk, "source_url": url, "job_id": job_id, "user_id": user_id}
             })
 
         if vectors:
@@ -134,12 +135,13 @@ app = FastAPI(lifespan=lifespan)
 
 class ChatRequest(BaseModel):
     query: str
+    userId: str
 
 
 @app.post("/rag-chat")
 async def chat_endpoint(req: ChatRequest):
     # 1. Search Pinecone
-    results = search_pinecone(req.query)
+    results = search_pinecone(req.query, req.userId)
 
     # 2. Extract matches
     context_chunks = results['matches']

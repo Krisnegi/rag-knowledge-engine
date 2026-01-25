@@ -30,7 +30,7 @@ def get_embedding(text: str, task_type="RETRIEVAL_DOCUMENT"):
     return result.embeddings[0].values
 
 
-def search_pinecone(query: str, top_k: int = 3):
+def search_pinecone(query: str, user_id: str, top_k: int = 3):
     """
     1. Embeds the user's question.
     2. Searches Pinecone for the 3 most similar text chunks.
@@ -39,10 +39,14 @@ def search_pinecone(query: str, top_k: int = 3):
     # But usually, keeping it consistent works fine for simple RAG.
     query_vector = get_embedding(query, task_type="RETRIEVAL_QUERY")
 
+    # Tell Pinecone: "Only search vectors where metadata.user_id == user_id"
     results = index.query(
         vector=query_vector,
         top_k=top_k,
-        include_metadata=True  # We need the actual text back!
+        include_metadata=True,  # We need the actual text back!
+        filter={
+            "user_id": {"$eq": user_id}  # <--- THE MAGIC FILTER
+        }
     )
 
     return results

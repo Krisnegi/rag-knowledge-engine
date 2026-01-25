@@ -4,9 +4,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { IngestionModule } from './ingestion/ingestion.module';
 import { ChatModule } from './chat/chat.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
-  imports: [IngestionModule, ChatModule],
+  imports: [IngestionModule, ChatModule, AuthModule],
   controllers: [AppController],
   providers: [AppService],
 })
