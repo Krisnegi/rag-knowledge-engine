@@ -25,6 +25,41 @@ services:
     volumes:
       - redis_data:/data
 
+  # 3. Python AI Worker
+  worker-service:
+    build: ./worker-service
+    container_name: rag_worker-service
+    restart: always
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./worker-service/.env # <-- Docker loads all variables from this file automatically!
+    environment:
+      - REDIS_HOST=redis
+      - DATABASE_URL=postgresql://myuser:mypassword@postgres:5432/rag_db
+    depends_on:
+      - postgres
+      - redis
+
+  # 4. NestJS API Gateway
+  gateway-service:
+    build: ./gateway-service
+    container_name: rag_gateway-service
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./gateway-service/.env # <-- Docker loads all variables from this file automatically!
+    environment:
+      # Match your Postgres credentials here:
+      - DATABASE_URL=postgresql://myuser:mypassword@postgres:5432/rag_db?schema=public
+      - REDIS_HOST=redis
+      - PYTHON_API_URL=http://worker-service:8000/rag-chat
+    depends_on:
+      - postgres
+      - redis
+      - worker-service
+
 volumes:
   postgres_data:
   redis_data:

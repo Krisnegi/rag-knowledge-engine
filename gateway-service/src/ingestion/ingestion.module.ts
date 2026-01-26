@@ -14,8 +14,8 @@ import Redis from 'ioredis';
       provide: 'REDIS_CLIENT',
       useFactory: () => {
         return new Redis({
-          host: 'localhost', // Use env var in production
-          port: 6379,
+          host: process.env.REDIS_HOST || 'localhost',
+          port: parseInt(process.env.REDIS_PORT || '6379'),
         });
       },
     },

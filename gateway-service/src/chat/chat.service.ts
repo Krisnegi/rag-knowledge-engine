@@ -6,7 +6,8 @@ const prisma = new PrismaClient();
 
 @Injectable()
 export class ChatService {
-  private readonly PYTHON_API_URL = 'http://localhost:8000/rag-chat';
+  private readonly PYTHON_API_URL =
+    process.env.PYTHON_API_URL || 'http://localhost:8000/rag-chat';
 
   async getAiResponse(query: string, userId: string, sessionId?: string) {
     try {

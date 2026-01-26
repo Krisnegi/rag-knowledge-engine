@@ -2,4 +2,11 @@ fastapi
 uvicorn
 redis
 python-dotenv
-# We will add playwright and langchain later in Phase 4
+playwright
+beautifulsoup4
+psycopg2-binary
+google-genai
+pinecone
+langchain-text-splitters
+pydantic
+groq
