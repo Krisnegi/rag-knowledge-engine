@@ -3,17 +3,23 @@ import json
 import os
 import redis
 import psycopg2
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 
 # Import our modular logic
-from src.rag_engine import search_pinecone, generate_answer, get_embedding
+from src.utils import get_embeddings
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pinecone import Pinecone
 from dotenv import load_dotenv
+
+# Import the graph builder
+from src.agent.graph import build_agent_graph
+
+# Initialize the graph ONCE at startup
+agent_app = build_agent_graph()
 
 load_dotenv()
 
@@ -73,9 +79,9 @@ def process_scraping_job(job_data):
         chunks = splitter.split_text(text)
 
         vectors = []
+        embeddings = get_embeddings("retrieval_document")
         for i, chunk in enumerate(chunks):
-            # We use the helper from rag_engine
-            vector = get_embedding(chunk)
+            vector = embeddings.embed_documents([chunk])[0]
             vectors.append({
                 "id": f"{job_id}#{i}",
                 "values": vector,
@@ -140,13 +146,20 @@ class ChatRequest(BaseModel):
 
 @app.post("/rag-chat")
 async def chat_endpoint(req: ChatRequest):
-    # 1. Search Pinecone
-    results = search_pinecone(req.query, req.userId)
+    print(f"🤖 Agent received query: {req.query}")
 
-    # 2. Extract matches
-    context_chunks = results['matches']
+    # Run the Agent!
+    inputs = {
+        "question": req.query,
+        "user_id": req.userId,  # Pass ID for filtering
+        "web_search": "No",     # Default init state
+        "generation_loop_count": 0
+    }
 
-    # 3. Generate Answer
-    answer = generate_answer(req.query, context_chunks)
+    # .invoke runs the entire graph workflow
+    result = agent_app.invoke(inputs)
 
-    return {"answer": answer, "sources": [m['metadata']['source_url'] for m in context_chunks]}
+    return {
+        "answer": result['generation'],
+        "sources": result['documents']
+    }

@@ -4,9 +4,15 @@ redis
 python-dotenv
 playwright
 beautifulsoup4
-psycopg2-binary
-google-genai
-pinecone
 langchain-text-splitters
-pydantic
-groq
+psycopg2-binary
+langgraph
+langchain
+langchain_community
+langchain-tavily
+langchain-groq          # Wrapper for Llama 3
+langchain-google-genai  # Wrapper for Embeddings
+langchain-pinecone      # Wrapper for Vector DB
+pydantic                # Required for data validation
+
+langchain-text-splitters
