@@ -1,21 +1,21 @@
 version: "3.8"
 
 services:
-  # 1. Primary Database (Relational Data)
+  # 1. Primary Database
   postgres:
     image: postgres:15-alpine
     container_name: rag_postgres
     restart: always
     environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: rag_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  # 2. Message Queue & Cache
+  # 2. Redis
   redis:
     image: redis:7-alpine
     container_name: rag_redis
@@ -33,10 +33,11 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - ./worker-service/.env # <-- Docker loads all variables from this file automatically!
+      - .env
     environment:
       - REDIS_HOST=redis
-      - DATABASE_URL=postgresql://myuser:mypassword@postgres:5432/rag_db
+      # We construct the URL dynamically using variables from the root .env
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     depends_on:
       - postgres
       - redis
@@ -49,10 +50,9 @@ services:
     ports:
       - "3000:3000"
     env_file:
-      - ./gateway-service/.env # <-- Docker loads all variables from this file automatically!
+      - .env
     environment:
-      # Match your Postgres credentials here:
-      - DATABASE_URL=postgresql://myuser:mypassword@postgres:5432/rag_db?schema=public
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - REDIS_HOST=redis
       - PYTHON_API_URL=http://worker-service:8000/rag-chat
     depends_on:
