@@ -1,0 +1,62 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main # Triggers only when you push to main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out your code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Create the clean Zip file (Just like we did manually!)
+      - name: Compress files
+        run: |
+          tar -czvf rag-app.tar.gz \
+            --exclude='node_modules' \
+            --exclude='dist' \
+            --exclude='.venv' \
+            --exclude='__pycache__' \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='worker-service/.env' \
+            --exclude='gateway-service/.env' \
+            .
+
+      # 3. Copy the Zip to AWS (Using SCP)
+      - name: Upload to Server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "rag-app.tar.gz"
+          target: "/home/ubuntu/"
+
+      # 4. SSH into Server & Restart Docker
+      - name: Deploy on Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Create folder if missing
+            mkdir -p rag-app
+
+            # Unzip the new code
+            tar -xzvf rag-app.tar.gz -C rag-app
+
+            # Go inside and restart
+            cd rag-app
+
+            # Rebuild and start (Docker is smart, it only rebuilds what changed)
+            sudo docker-compose up --build -d
+
+            # Cleanup the zip file
+            rm ../rag-app.tar.gz
